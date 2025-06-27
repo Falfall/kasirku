@@ -1,4 +1,4 @@
-package com.example.kasirku
+package com.kasiku.app
 
 import io.flutter.embedding.android.FlutterActivity
 
