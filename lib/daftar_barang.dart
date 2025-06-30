@@ -16,10 +16,10 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
   final TextEditingController _searchController = TextEditingController();
 
   void _showForm({ItemBarang? item, int? index}) {
-    final TextEditingController namaController = TextEditingController(text: item?.nama ?? '');
-    final TextEditingController kodeController = TextEditingController(text: item?.kode ?? '');
-    final TextEditingController hargaController = TextEditingController(text: item?.harga ?? '');
-    final TextEditingController stokController = TextEditingController(text: item?.stok ?? '');
+    final namaController = TextEditingController(text: item?.nama ?? '');
+    final kodeController = TextEditingController(text: item?.kode ?? '');
+    final hargaController = TextEditingController(text: item?.harga ?? '');
+    final stokController = TextEditingController(text: item?.stok ?? '');
 
     showDialog(
       context: context,
@@ -93,11 +93,25 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Daftar Barang',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              // Header dengan Logout button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Daftar Barang',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.black),
+                    tooltip: 'Logout',
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/logout');
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
+              // Search field
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -110,6 +124,7 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 16),
+              // Tombol tambah barang
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -125,6 +140,7 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
                 ),
               ),
               const SizedBox(height: 16),
+              // Daftar barang
               Expanded(
                 child: filteredList.isEmpty
                     ? const Center(child: Text('Tidak ada barang ditemukan.'))
