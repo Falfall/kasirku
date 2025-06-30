@@ -9,7 +9,7 @@ class DaftarBarangPage extends StatefulWidget {
 
 class _DaftarBarangPageState extends State<DaftarBarangPage> {
   List<ItemBarang> barangList = [
-    ItemBarang(nama: 'Sabun Mandi', kode: 'SB001', harga: 'Rp 10.000', stok: '25 pcs'),
+    ItemBarang(nama: 'minyak goreng', kode: 'SB001', harga: 'Rp 10.000', stok: '25 pcs'),
     ItemBarang(nama: 'Pasta Gigi', kode: 'PG002', harga: 'Rp 12.000', stok: '10 pcs'),
   ];
 
