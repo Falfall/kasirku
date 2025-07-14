@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -12,29 +14,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Password tidak cocok')));
-        return;
-      }
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String email = _emailController.text;
-      String password = _passwordController.text;
-
-      await prefs.setString('user_$email', password);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Registrasi berhasil')));
-
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -49,6 +28,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _obscureConfirmPassword = !_obscureConfirmPassword;
     });
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Password tidak cocok')));
+        return;
+      }
+
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      try {
+        final response = await Supabase.instance.client.auth.signUp(
+          email: email,
+          password: password,
+        );
+
+        if (response.user != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Registrasi berhasil')));
+          Navigator.pushReplacementNamed(context, '/login');
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Registrasi gagal')));
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   Widget _buildInputField({
@@ -66,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label),
-          SizedBox(height: 5),
+          const SizedBox(height: 5),
           TextFormField(
             controller: controller,
             obscureText:
@@ -99,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : null,
               filled: true,
               fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 vertical: 12,
                 horizontal: 10,
               ),
@@ -119,9 +134,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: Colors.grey.shade100,
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             width: 400,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -132,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  Text(
+                  const Text(
                     'REGISTER BARU',
                     style: TextStyle(
                       fontSize: 24,
@@ -141,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: Colors.black,
                     ),
                   ),
-                  SizedBox(height: 30),
+                  const SizedBox(height: 30),
                   _buildInputField(
                     label: 'Email atau username',
                     controller: _emailController,
@@ -159,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.vpn_key,
                     isPassword: true,
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     height: 45,
@@ -171,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      child: Text(
+                      child: const Text(
                         'DAFTAR',
                         style: TextStyle(
                           fontSize: 16,
