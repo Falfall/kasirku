@@ -12,7 +12,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
@@ -27,7 +26,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       String email = _emailController.text;
       String password = _passwordController.text;
 
-      // Simpan akun ke shared preferences
       await prefs.setString('user_$email', password);
 
       ScaffoldMessenger.of(
@@ -160,12 +158,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _confirmPasswordController,
                     icon: Icons.vpn_key,
                     isPassword: true,
-                  ),
-                  _buildInputField(
-                    label: 'Nomor Handphone',
-                    controller: _phoneController,
-                    icon: Icons.phone,
-                    inputType: TextInputType.phone,
                   ),
                   SizedBox(height: 20),
                   SizedBox(
