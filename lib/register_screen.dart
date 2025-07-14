@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kasirku/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase/supabase.dart' show AuthException;
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,120 +12,82 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
 
-  void _togglePasswordVisibility() {
-    setState(() {
-      _obscurePassword = !_obscurePassword;
-    });
-  }
+  void _togglePassword() => setState(() => _obscurePass = !_obscurePass);
+  void _toggleConfirm() => setState(() => _obscureConfirm = !_obscureConfirm);
 
-  void _toggleConfirmPasswordVisibility() {
-    setState(() {
-      _obscureConfirmPassword = !_obscureConfirmPassword;
-    });
-  }
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Password tidak cocok')));
-        return;
+    if (_password.text != _confirm.text) {
+      _showMessage("Password tidak cocok");
+      return;
+    }
+
+    try {
+      final response = await SupabaseService().signUp(
+        _email.text.trim(),
+        _password.text,
+      );
+      if (response.user != null) {
+        _showMessage("Registrasi berhasil! Cek email untuk verifikasi.");
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        _showMessage("Registrasi gagal.");
       }
-
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-
-      try {
-        final response = await Supabase.instance.client.auth.signUp(
-          email: email,
-          password: password,
-        );
-
-        if (response.user != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Registrasi berhasil')));
-          Navigator.pushReplacementNamed(context, '/login');
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Registrasi gagal')));
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+    } on AuthException catch (e) {
+      _showMessage("Error: ${e.message}");
+    } catch (e) {
+      _showMessage("Terjadi kesalahan: $e");
     }
   }
 
-  Widget _buildInputField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    bool isPassword = false,
-    TextInputType inputType = TextInputType.text,
-  }) {
-    bool isConfirmPassword = controller == _confirmPasswordController;
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
+  Widget _buildInput(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool isPassword = false,
+    bool isConfirm = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          const SizedBox(height: 5),
-          TextFormField(
-            controller: controller,
-            obscureText:
-                isPassword
-                    ? (isConfirmPassword
-                        ? _obscureConfirmPassword
-                        : _obscurePassword)
-                    : false,
-            keyboardType: inputType,
-            validator:
-                (value) =>
-                    value == null || value.isEmpty ? 'Wajib diisi' : null,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon),
-              suffixIcon:
-                  isPassword
-                      ? IconButton(
-                        icon: Icon(
-                          (isConfirmPassword
-                                  ? _obscureConfirmPassword
-                                  : _obscurePassword)
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed:
-                            isConfirmPassword
-                                ? _toggleConfirmPasswordVisibility
-                                : _togglePasswordVisibility,
-                      )
-                      : null,
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 12,
-                horizontal: 10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-          ),
-        ],
+      child: TextFormField(
+        controller: controller,
+        obscureText:
+            isPassword ? (isConfirm ? _obscureConfirm : _obscurePass) : false,
+        validator: (value) {
+          if (value == null || value.isEmpty) return 'Wajib diisi';
+          if (!isPassword && !value.contains('@')) return 'Email tidak valid';
+          return null;
+        },
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          suffixIcon:
+              isPassword
+                  ? IconButton(
+                    icon: Icon(
+                      (isConfirm ? _obscureConfirm : _obscurePass)
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: isConfirm ? _toggleConfirm : _togglePassword,
+                  )
+                  : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
       ),
     );
   }
@@ -148,38 +112,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 children: [
                   const Text(
-                    'REGISTER BARU',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: Colors.black,
-                    ),
+                    'DAFTAR',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 30),
-                  _buildInputField(
-                    label: 'Email atau username',
-                    controller: _emailController,
-                    icon: Icons.person,
-                  ),
-                  _buildInputField(
-                    label: 'Password',
-                    controller: _passwordController,
-                    icon: Icons.vpn_key,
+                  _buildInput('Email', _email, Icons.email),
+                  _buildInput(
+                    'Password',
+                    _password,
+                    Icons.lock,
                     isPassword: true,
                   ),
-                  _buildInputField(
-                    label: 'Konfirmasi Password',
-                    controller: _confirmPasswordController,
-                    icon: Icons.vpn_key,
+                  _buildInput(
+                    'Konfirmasi Password',
+                    _confirm,
+                    Icons.lock_outline,
                     isPassword: true,
+                    isConfirm: true,
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     height: 45,
                     child: ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
@@ -188,11 +144,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: const Text(
                         'DAFTAR',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),

@@ -1,11 +1,11 @@
-class profil {
+class Profil {
   final String id;
   final String email;
 
-  profil({required this.id, required this.email});
+  Profil({required this.id, required this.email});
 
-  factory profil.fromJson(Map<String, dynamic> json) {
-    return profil(id: json['id'], email: json['email']);
+  factory Profil.fromJson(Map<String, dynamic> json) {
+    return Profil(id: json['id'], email: json['email']);
   }
 
   Map<String, dynamic> toJson() {
