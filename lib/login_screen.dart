@@ -13,13 +13,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-
   bool _obscure = true;
+  bool _isLoading = false;
 
   void _togglePassword() => setState(() => _obscure = !_obscure);
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final response = await SupabaseService().signIn(
@@ -31,12 +35,16 @@ class _LoginScreenState extends State<LoginScreen> {
         _showMessage("Login berhasil!");
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
-        _showMessage("Login gagal.");
+        _showMessage("Login gagal. Cek email & password.");
       }
     } on AuthException catch (e) {
       _showMessage("Auth error: ${e.message}");
     } catch (e) {
       _showMessage("Error: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -72,7 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _email,
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Wajib diisi';
-                      if (!value.contains('@')) return 'Email tidak valid';
+                      if (!value.contains('@') || !value.contains('.'))
+                        return 'Email tidak valid';
                       return null;
                     },
                     decoration: const InputDecoration(
@@ -101,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         onPressed: _togglePassword,
                       ),
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                       filled: true,
                       fillColor: Colors.white,
                     ),
@@ -111,17 +120,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 45,
                     child: ElevatedButton(
-                      onPressed: _login,
+                      onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepPurple,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
-                      child: const Text(
-                        'LOGIN',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'LOGIN',
+                                style: TextStyle(color: Colors.white),
+                              ),
                     ),
                   ),
                   const SizedBox(height: 10),
