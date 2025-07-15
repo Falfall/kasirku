@@ -1,194 +1,239 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-void main() {
-  runApp(const MaterialApp(
-    home: Dashboard(),
-    debugShowCheckedModeBanner: false,
-    title: 'Aplikasi Kasir',
-  ));
-}
-
-class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardState extends State<Dashboard> {
-  int _selectedIndex = 0;
+class _DashboardScreenState extends State<DashboardScreen> {
+  double _totalHariIni = 0;
+  List<BarChartGroupData> _chartData = [];
+  bool _isChartLoading = true;
 
-  final List<double> penjualanMingguan = [3, 5, 4, 7, 6, 8, 10];
-
-  final List<Map<String, dynamic>> transaksi = [
-    {"id": "#20231", "jam": "11.00", "total": 150000},
-    {"id": "#20232", "jam": "12.45", "total": 170000},
-    {"id": "#20233", "jam": "13.00", "total": 190000},
-    {"id": "#20234", "jam": "13.45", "total": 210000},
-    {"id": "#20235", "jam": "14.00", "total": 200000},
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Navigasi ke halaman: ${['Transaksi', 'Struk', 'Barang'][index]}"))
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadTotalHariIni();
+    _loadChartData();
   }
 
-  void _navigateToProfile() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const ProfilePage()),
-    );
+  Future<void> _loadTotalHariIni() async {
+    final now = DateTime.now();
+    final tanggal = now.toIso8601String().substring(0, 10);
+
+    try {
+      final response = await Supabase.instance.client
+          .from('transaksi_penjualan')
+          .select('total')
+          .eq('tanggal', tanggal);
+
+      double total = 0;
+      for (final item in response) {
+        total += (item['total'] as num?)?.toDouble() ?? 0;
+      }
+
+      setState(() {
+        _totalHariIni = total;
+      });
+    } catch (e) {
+      print("❌ Gagal ambil total hari ini: $e");
+    }
+  }
+
+  Future<void> _loadChartData() async {
+    final now = DateTime.now();
+    final sevenDaysAgo = now.subtract(const Duration(days: 6));
+    final formattedStart = sevenDaysAgo.toIso8601String().substring(0, 10);
+
+    try {
+      final response = await Supabase.instance.client
+          .from('transaksi_penjualan')
+          .select('tanggal, total')
+          .gte('tanggal', formattedStart)
+          .order('tanggal');
+
+      Map<String, double> totals = {};
+
+      for (final item in response) {
+        final tgl = item['tanggal'].substring(0, 10);
+        final nilai = (item['total'] as num?)?.toDouble() ?? 0;
+        totals[tgl] = (totals[tgl] ?? 0) + nilai;
+      }
+
+      setState(() {
+        _chartData = List.generate(7, (i) {
+          final date = sevenDaysAgo.add(Duration(days: i));
+          final key = date.toIso8601String().substring(0, 10);
+          final total = totals[key] ?? 0;
+
+          return BarChartGroupData(
+            x: i,
+            barRods: [BarChartRodData(toY: total, color: Colors.deepPurple)],
+          );
+        });
+
+        _isChartLoading = false;
+      });
+    } catch (e) {
+      print("❌ Gagal ambil data chart: $e");
+      setState(() => _isChartLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final last = transaksi.isNotEmpty ? transaksi.last : null;
-
     return Scaffold(
       appBar: AppBar(
-        leading: const Icon(Icons.menu),
-        title: const Text("Dashboard"),
+        title: const Text('Dashboard Kasir'),
+        backgroundColor: Colors.deepPurple,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              icon: const Icon(Icons.account_circle),
-              onPressed: _navigateToProfile,
-            ),
-          )
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Supabase.instance.client.auth.signOut();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
         ],
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: ListView(
           children: [
-            Row(
-              children: const [
-                Expanded(child: DashboardCard(title: 'Pendapatan Hari ini', value: 'Rp 0')),
-                Expanded(child: DashboardCard(title: 'Total Transaksi', value: 'Rp 0')),
-                Expanded(child: DashboardCard(title: 'Produk Terjual', value: '0')),
-              ],
+            _buildSummaryCard(),
+            const SizedBox(height: 20),
+            const Text(
+              'Grafik Penjualan (7 Hari Terakhir)',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Penjualan Minggu ini", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: BarChart(
-                BarChartData(
-                  barGroups: List.generate(7, (index) {
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: penjualanMingguan[index],
-                          color: Colors.blue,
-                          width: 16,
-                          borderRadius: BorderRadius.circular(6),
-                        )
-                      ],
-                    );
-                  }),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          const hari = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Text(hari[value.toInt()], style: const TextStyle(fontSize: 10)),
-                          );
-                        },
+            const SizedBox(height: 10),
+            _isChartLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SizedBox(
+                  height: 200,
+                  child: BarChart(
+                    BarChartData(
+                      barGroups: _chartData,
+                      borderData: FlBorderData(show: false),
+                      gridData: FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              final date = DateTime.now().subtract(
+                                Duration(days: 6 - index),
+                              );
+                              return SideTitleWidget(
+                                axisSide: meta.axisSide,
+                                child: Text(
+                                  '${date.day}/${date.month}',
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: true),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                     ),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(show: false),
-                  gridData: FlGridData(show: true),
                 ),
-              ),
+            const SizedBox(height: 30),
+            const Text(
+              'Menu Utama',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            last != null
-                ? Text(
-                    "Transaksi terakhir\n${last['id']} - ${last['jam']} - Rp.${last['total'].toStringAsFixed(0)},-",
-                    textAlign: TextAlign.center,
-                  )
-                : const Text("Belum ada transaksi"),
+            const SizedBox(height: 10),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _buildMenuTile(
+                  icon: Icons.input,
+                  label: 'Barang Masuk',
+                  onTap: () => Navigator.pushNamed(context, '/barang-masuk'),
+                ),
+                _buildMenuTile(
+                  icon: Icons.output,
+                  label: 'Barang Keluar',
+                  onTap: () => Navigator.pushNamed(context, '/barang-keluar'),
+                ),
+                _buildMenuTile(
+                  icon: Icons.receipt_long,
+                  label: 'Laporan',
+                  onTap: () => Navigator.pushNamed(context, '/laporan'),
+                ),
+              ],
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        backgroundColor: Colors.blue.shade800,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white60,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Transaksi"),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: "Struk"),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: "Barang"),
-        ],
-      ),
     );
   }
-}
 
-class DashboardCard extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const DashboardCard({super.key, required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2196F3), Color(0xFF0D47A1)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  Widget _buildSummaryCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.deepPurple.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Total Pendapatan Hari Ini'),
+            const SizedBox(height: 10),
+            Text(
+              'Rp ${_totalHariIni.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
-        ],
       ),
     );
   }
-}
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Profil Kasir"),
-        backgroundColor: Colors.blue,
-      ),
-      body: const Center(
-        child: Text("Ini halaman profil kasir"),
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 40, color: Colors.deepPurple),
+              const SizedBox(height: 10),
+              Text(label, style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+        ),
       ),
     );
   }
