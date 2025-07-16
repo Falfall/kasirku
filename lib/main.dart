@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:kasirku/barangmasuk.dart';
-import 'package:kasirku/barangkeluar.dart';
+import 'daftar_barang.dart';
+import 'logout.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,13 +12,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Laporan Barang Keluar',
+      title: 'KasirKu',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const LaporanBarangKeluarPage(),
+      // Halaman pertama saat aplikasi dijalankan
+      home: const DaftarBarangPage(),
+      
+      // Daftar semua routes yang bisa diakses
+      routes: {
+        '/logout': (context) => const LogoutPage(),
+      },
     );
   }
 }
