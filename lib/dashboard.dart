@@ -180,6 +180,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: 'Laporan',
                   onTap: () => Navigator.pushNamed(context, '/laporan'),
                 ),
+                _buildMenuTile(
+                  icon: Icons.person,
+                  label: 'Profil',
+                  onTap: () => Navigator.pushNamed(context, '/profil'),
+                ),
               ],
             ),
           ],
