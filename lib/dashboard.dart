@@ -91,6 +91,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Dashboard Kasir'),
         backgroundColor: Colors.deepPurple,
         actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.pushNamed(context, '/profiluser');
+            },
+            icon: const Icon(Icons.person, color: Colors.white),
+            label: const Text('Profil', style: TextStyle(color: Colors.white)),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -183,7 +190,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _buildMenuTile(
                   icon: Icons.person,
                   label: 'Profil',
-                  onTap: () => Navigator.pushNamed(context, '/profil'),
+                  onTap: () => Navigator.pushNamed(context, '/profiluser'),
                 ),
               ],
             ),
