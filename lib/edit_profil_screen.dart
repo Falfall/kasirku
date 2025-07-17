@@ -10,7 +10,9 @@ class EditProfilScreen extends StatefulWidget {
 
 class _EditProfilScreenState extends State<EditProfilScreen> {
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController namaController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   final user = Supabase.instance.client.auth.currentUser;
 
@@ -18,17 +20,29 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
   void initState() {
     super.initState();
     emailController.text = user?.email ?? '';
-    namaController.text = user?.userMetadata?['nama'] ?? '';
   }
 
   Future<void> simpanPerubahan() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+
+    if (password.isNotEmpty && password != confirmPassword) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Password tidak cocok')));
+      return;
+    }
+
     try {
+      // Update email dan/atau password
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(
-          email: emailController.text.trim(),
-          data: {'nama': namaController.text.trim()},
+          email: email,
+          password: password.isNotEmpty ? password : null,
         ),
       );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil berhasil diperbarui')),
@@ -54,13 +68,23 @@ class _EditProfilScreenState extends State<EditProfilScreen> {
         child: Column(
           children: [
             TextField(
-              controller: namaController,
-              decoration: const InputDecoration(labelText: 'Nama'),
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
+              controller: passwordController,
+              decoration: const InputDecoration(labelText: 'Password Baru'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Konfirmasi Password',
+              ),
+              obscureText: true,
             ),
             const SizedBox(height: 30),
             ElevatedButton(
