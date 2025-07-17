@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'profiluser.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -10,6 +11,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int _selectedIndex = 0; // 0: Dashboard, 1: Profil
   double _totalHariIni = 0;
   List<BarChartGroupData> _chartData = [];
   bool _isChartLoading = true;
@@ -24,7 +26,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadTotalHariIni() async {
     final now = DateTime.now();
     final tanggal = now.toIso8601String().substring(0, 10);
-
     try {
       final response = await Supabase.instance.client
           .from('transaksi_penjualan')
@@ -57,7 +58,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .order('tanggal');
 
       Map<String, double> totals = {};
-
       for (final item in response) {
         final tgl = item['tanggal'].substring(0, 10);
         final nilai = (item['total'] as num?)?.toDouble() ?? 0;
@@ -75,7 +75,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             barRods: [BarChartRodData(toY: total, color: Colors.deepPurple)],
           );
         });
-
         _isChartLoading = false;
       });
     } catch (e) {
@@ -88,16 +87,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard Kasir'),
+        title: Text(
+          _selectedIndex == 0 ? 'Dashboard Kasir' : 'Profil Pengguna',
+        ),
         backgroundColor: Colors.deepPurple,
         actions: [
-          TextButton.icon(
-            onPressed: () {
-              Navigator.pushNamed(context, '/profiluser');
-            },
-            icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text('Profil', style: TextStyle(color: Colors.white)),
-          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -107,95 +101,106 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildSummaryCard(),
-            const SizedBox(height: 20),
-            const Text(
-              'Grafik Penjualan (7 Hari Terakhir)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _isChartLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SizedBox(
-                  height: 200,
-                  child: BarChart(
-                    BarChartData(
-                      barGroups: _chartData,
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              final date = DateTime.now().subtract(
-                                Duration(days: 6 - index),
-                              );
-                              return SideTitleWidget(
-                                axisSide: meta.axisSide,
-                                child: Text(
-                                  '${date.day}/${date.month}',
-                                  style: const TextStyle(fontSize: 10),
-                                ),
-                              );
-                            },
-                          ),
+      body: _selectedIndex == 0 ? _buildDashboard() : const ProfilUserScreen(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.deepPurple,
+        onTap: (index) => setState(() => _selectedIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboard() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ListView(
+        children: [
+          _buildSummaryCard(),
+          const SizedBox(height: 20),
+          const Text(
+            'Grafik Penjualan (7 Hari Terakhir)',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          _isChartLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SizedBox(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+                    barGroups: _chartData,
+                    borderData: FlBorderData(show: false),
+                    gridData: FlGridData(show: false),
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final index = value.toInt();
+                            final date = DateTime.now().subtract(
+                              Duration(days: 6 - index),
+                            );
+                            return SideTitleWidget(
+                              axisSide: meta.axisSide,
+                              child: Text(
+                                '${date.day}/${date.month}',
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            );
+                          },
                         ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true),
-                        ),
-                        rightTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: true),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
                       ),
                     ),
                   ),
                 ),
-            const SizedBox(height: 30),
-            const Text(
-              'Menu Utama',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                _buildMenuTile(
-                  icon: Icons.input,
-                  label: 'Barang Masuk',
-                  onTap: () => Navigator.pushNamed(context, '/barang-masuk'),
-                ),
-                _buildMenuTile(
-                  icon: Icons.output,
-                  label: 'Barang Keluar',
-                  onTap: () => Navigator.pushNamed(context, '/barang-keluar'),
-                ),
-                _buildMenuTile(
-                  icon: Icons.receipt_long,
-                  label: 'Laporan',
-                  onTap: () => Navigator.pushNamed(context, '/laporan'),
-                ),
-                _buildMenuTile(
-                  icon: Icons.person,
-                  label: 'Profil',
-                  onTap: () => Navigator.pushNamed(context, '/profiluser'),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+          const SizedBox(height: 30),
+          const Text(
+            'Menu Utama',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            children: [
+              _buildMenuTile(
+                icon: Icons.input,
+                label: 'Barang Masuk',
+                onTap: () => Navigator.pushNamed(context, '/barang-masuk'),
+              ),
+              _buildMenuTile(
+                icon: Icons.output,
+                label: 'Barang Keluar',
+                onTap: () => Navigator.pushNamed(context, '/barang-keluar'),
+              ),
+              _buildMenuTile(
+                icon: Icons.receipt_long,
+                label: 'Laporan',
+                onTap: () => Navigator.pushNamed(context, '/laporan'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

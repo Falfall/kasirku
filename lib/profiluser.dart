@@ -1,133 +1,83 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dashboard.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
-
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  bool isEditing = false;
-  bool obscurePassword = true;
-  File? _image;
-
-  final TextEditingController emailController = TextEditingController(
-    text: "kasir@email.com",
-  );
-  final TextEditingController usernameController = TextEditingController(
-    text: "kasir01",
-  );
-  final TextEditingController passwordController = TextEditingController(
-    text: "password123",
-  );
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-      });
-    }
-  }
+class ProfilUserScreen extends StatelessWidget {
+  const ProfilUserScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = Supabase.instance.client.auth.currentUser;
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Profil Kasir")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: isEditing ? _pickImage : null,
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage:
-                        _image != null
-                            ? FileImage(_image!)
-                            : const AssetImage('assets/profile.jpg')
-                                as ImageProvider,
-                  ),
-                  if (isEditing)
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.edit, size: 18, color: Colors.white),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              enabled: isEditing,
-              style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            TextField(
-              controller: usernameController,
-              enabled: isEditing,
-              style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            TextField(
-              controller: passwordController,
-              obscureText: obscurePassword,
-              enabled: isEditing,
-              style: const TextStyle(color: Colors.black),
-              decoration: InputDecoration(
-                labelText: 'Password',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      obscurePassword = !obscurePassword;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      appBar: AppBar(
+        backgroundColor: Colors.deepPurple,
+        elevation: 0,
+        title: const Text('Profil', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const DashboardScreen()),
+            );
+          },
+        ),
+      ),
+      backgroundColor: Colors.grey[100],
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      isEditing = !isEditing;
-                    });
-                  },
-                  child: Text(isEditing ? "Batal" : "Edit"),
+                const Text(
+                  'Informasi Akun',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                if (isEditing)
-                  ElevatedButton(
+                const SizedBox(height: 20),
+                Text(
+                  'Email: ${user?.email ?? "-"}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'ID: ${user?.id ?? "-"}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 10),
+                const Text('Status: Kasir', style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 30),
+                Center(
+                  child: ElevatedButton.icon(
                     onPressed: () {
-                      setState(() {
-                        isEditing = false;
-                      });
+                      // Nanti bisa diarahkan ke halaman edit profil
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fitur edit belum tersedia'),
+                        ),
+                      );
                     },
-                    child: const Text("Simpan"),
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Profil'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 24,
+                      ),
+                    ),
                   ),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement logout/hapus
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text("Hapus"),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
