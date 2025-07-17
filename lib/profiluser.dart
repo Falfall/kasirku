@@ -14,9 +14,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool obscurePassword = true;
   File? _image;
 
-  final TextEditingController nameController = TextEditingController(
-    text: "Nama Kasir",
-  );
   final TextEditingController emailController = TextEditingController(
     text: "kasir@email.com",
   );
@@ -70,23 +67,22 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 20),
             TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-              enabled: isEditing,
-            ),
-            TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
               enabled: isEditing,
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             TextField(
               controller: usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
               enabled: isEditing,
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Username'),
             ),
             TextField(
               controller: passwordController,
               obscureText: obscurePassword,
+              enabled: isEditing,
+              style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 labelText: 'Password',
                 suffixIcon: IconButton(
@@ -100,7 +96,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 ),
               ),
-              enabled: isEditing,
             ),
             const SizedBox(height: 20),
             Row(
@@ -117,7 +112,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 if (isEditing)
                   ElevatedButton(
                     onPressed: () {
-                      // Simpan perubahan
                       setState(() {
                         isEditing = false;
                       });
@@ -126,7 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ElevatedButton(
                   onPressed: () {
-                    // Hapus data atau logout
+                    // TODO: Implement logout/hapus
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text("Hapus"),
