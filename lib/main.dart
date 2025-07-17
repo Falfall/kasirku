@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'splash_screen.dart';
 import 'login_screen.dart';
-import 'profiluser.dart';
 import 'register_screen.dart';
 import 'dashboard.dart';
 
@@ -35,7 +34,6 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
-        '/profil': (context) => const ProfilScreen(),
         '/dashboard': (context) => DashboardScreen(),
       },
     );
