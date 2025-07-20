@@ -5,6 +5,8 @@ import 'login_screen.dart';
 import 'register_screen.dart';
 import 'dashboard.dart';
 import 'profiluser.dart';
+import 'package:kasirku/daftar_barang.dart';
+import 'package:kasirku/logout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
