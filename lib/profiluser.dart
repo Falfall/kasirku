@@ -22,7 +22,7 @@ class ProfilUserScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.deepPurple,
           elevation: 0,
-          title: const Text('Profil', style: TextStyle(color: Colors.white)),
+          automaticallyImplyLeading: false, // Menghilangkan tombol back
         ),
         backgroundColor: Colors.grey[100],
         body: Padding(

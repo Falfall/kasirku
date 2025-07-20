@@ -86,13 +86,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // ⛔ Disable tombol back
+      onWillPop: () async => false,
       child: Scaffold(
         appBar: AppBar(
           title: Text(
             _selectedIndex == 0 ? 'Dashboard Kasir' : 'Profil Pengguna',
           ),
           backgroundColor: Colors.deepPurple,
+          automaticallyImplyLeading: false,
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
