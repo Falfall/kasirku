@@ -97,9 +97,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
-              onPressed: () {
-                Supabase.instance.client.auth.signOut();
-                Navigator.pushReplacementNamed(context, '/login');
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (context.mounted) {
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
               },
             ),
           ],
@@ -202,6 +204,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.receipt_long,
                 label: 'Laporan',
                 onTap: () => Navigator.pushNamed(context, '/laporan'),
+              ),
+              _buildMenuTile(
+                icon: Icons.shopping_cart,
+                label: 'Transaksi',
+                onTap: () => Navigator.pushNamed(context, '/transaksi'),
+              ),
+              _buildMenuTile(
+                icon: Icons.list,
+                label: 'Daftar Barang',
+                onTap: () => Navigator.pushNamed(context, '/daftar_barang'),
               ),
             ],
           ),

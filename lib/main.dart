@@ -5,8 +5,7 @@ import 'login_screen.dart';
 import 'register_screen.dart';
 import 'dashboard.dart';
 import 'profiluser.dart';
-import 'package:kasirku/daftar_barang.dart';
-import 'package:kasirku/logout.dart';
+import 'daftar_barang.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +38,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/dashboard': (context) => DashboardScreen(),
         '/profiluser': (context) => ProfilUserScreen(),
+        '/daftar_barang': (context) => DaftarBarangPage(),
       },
     );
   }
