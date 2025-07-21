@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:kasirku/pages/barang_masuk_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../utils/constants.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -12,6 +13,10 @@ import 'register_screen.dart';
 import 'dashboard.dart';
 import 'profiluser.dart';
 import 'daftar_barang.dart';
+import 'package:kasirku/pages/barang_masuk_page.dart';
+import 'package:kasirku/pages/laporan_barang_page.dart';
+import 'package:kasirku/pages/laporan_transaksi.dart';
+import 'package:kasirku/pages/transaksi_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +34,7 @@ void main() async {
   await GetStorage.init();
 
   // Inisialisasi Supabase
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  // await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
   runApp(const MyApp());
 }
@@ -57,6 +62,10 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => DashboardScreen(),
         '/profiluser': (context) => ProfilUserScreen(),
         '/daftar_barang': (context) => DaftarBarangPage(),
+        '/barang-masuk': (context) => BarangMasukPage(),
+        '/laporan-barang': (context) => LaporanBarangPage(),
+        '/laporan-transaksi': (context) => LaporanTransaksiPage(),
+        '/transaksi': (context) => TransaksiPage(),
       },
     );
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../models/produk.dart';
 import '../models/transaksi.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/00app_drawer.dart';
 
 class TransaksiPage extends StatefulWidget {
   const TransaksiPage({Key? key}) : super(key: key);
@@ -83,7 +83,7 @@ class _TransaksiPageState extends State<TransaksiPage> {
             .toList();
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      // drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Transaksi Barang'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(12.0),

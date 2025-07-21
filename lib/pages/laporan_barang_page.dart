@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../services/supabase_service.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/00app_drawer.dart';
 
 class LaporanBarangPage extends StatefulWidget {
   const LaporanBarangPage({super.key});
@@ -116,7 +116,7 @@ class _LaporanBarangPageState extends State<LaporanBarangPage> {
             : "${DateFormat('dd/MM/yyyy').format(_tanggalRange!.start)} - ${DateFormat('dd/MM/yyyy').format(_tanggalRange!.end)}";
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      // drawer: const AppDrawer(),
       appBar: AppBar(title: const Text("Laporan Barang"), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16),

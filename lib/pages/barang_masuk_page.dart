@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/00app_drawer.dart';
 
 class BarangMasukPage extends StatefulWidget {
   const BarangMasukPage({super.key});
@@ -141,7 +141,7 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
             : "${_tanggalMasuk!.day}/${_tanggalMasuk!.month}/${_tanggalMasuk!.year}";
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      // drawer: const AppDrawer(),
       appBar: AppBar(title: const Text("Barang Masuk"), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

@@ -187,8 +187,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSpacing: 16,
             children: [
               _buildMenuTile(Icons.input, 'Barang Masuk', '/barang-masuk'),
-              _buildMenuTile(Icons.output, 'Barang Keluar', '/barang-keluar'),
-              _buildMenuTile(Icons.receipt_long, 'Laporan', '/laporan'),
+              _buildMenuTile(Icons.output, 'Laporan Barang', '/laporan-barang'),
+              _buildMenuTile(
+                Icons.receipt_long,
+                'Laporan',
+                '/laporan-transaksi',
+              ),
               _buildMenuTile(Icons.shopping_cart, 'Transaksi', '/transaksi'),
               _buildMenuTile(Icons.list, 'Daftar Barang', '/daftar_barang'),
             ],

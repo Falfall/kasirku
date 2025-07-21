@@ -6,7 +6,7 @@ import '../services/supabase_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import '../widgets/app_drawer.dart';
+import '../widgets/00app_drawer.dart';
 
 class LaporanTransaksiPage extends StatefulWidget {
   const LaporanTransaksiPage({Key? key}) : super(key: key);
@@ -215,7 +215,7 @@ class _LaporanTransaksiPageState extends State<LaporanTransaksiPage> {
     final dateStr = DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate);
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      // drawer: const AppDrawer(),
       appBar: AppBar(title: const Text('Laporan Transaksi'), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
