@@ -85,41 +85,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _selectedIndex == 0 ? 'Dashboard Kasir' : 'Profil Pengguna',
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _selectedIndex == 0 ? 'Dashboard Kasir' : 'Profil Pengguna',
+        ),
+        backgroundColor: Colors.deepPurple,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await Supabase.instance.client.auth.signOut();
+              if (context.mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
           ),
-          backgroundColor: Colors.deepPurple,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-                if (context.mounted) {
-                  Navigator.pushReplacementNamed(context, '/login');
-                }
-              },
-            ),
-          ],
-        ),
-        body:
-            _selectedIndex == 0 ? _buildDashboard() : const ProfilUserScreen(),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          selectedItemColor: Colors.deepPurple,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
-          ],
-        ),
+        ],
+      ),
+      body: _selectedIndex == 0 ? _buildDashboard() : const ProfilUserScreen(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.deepPurple,
+        onTap: (index) => setState(() => _selectedIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        ],
       ),
     );
   }
@@ -190,31 +186,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
             children: [
-              _buildMenuTile(
-                icon: Icons.input,
-                label: 'Barang Masuk',
-                onTap: () => Navigator.pushNamed(context, '/barang-masuk'),
-              ),
-              _buildMenuTile(
-                icon: Icons.output,
-                label: 'Barang Keluar',
-                onTap: () => Navigator.pushNamed(context, '/barang-keluar'),
-              ),
-              _buildMenuTile(
-                icon: Icons.receipt_long,
-                label: 'Laporan',
-                onTap: () => Navigator.pushNamed(context, '/laporan'),
-              ),
-              _buildMenuTile(
-                icon: Icons.shopping_cart,
-                label: 'Transaksi',
-                onTap: () => Navigator.pushNamed(context, '/transaksi'),
-              ),
-              _buildMenuTile(
-                icon: Icons.list,
-                label: 'Daftar Barang',
-                onTap: () => Navigator.pushNamed(context, '/daftar_barang'),
-              ),
+              _buildMenuTile(Icons.input, 'Barang Masuk', '/barang-masuk'),
+              _buildMenuTile(Icons.output, 'Barang Keluar', '/barang-keluar'),
+              _buildMenuTile(Icons.receipt_long, 'Laporan', '/laporan'),
+              _buildMenuTile(Icons.shopping_cart, 'Transaksi', '/transaksi'),
+              _buildMenuTile(Icons.list, 'Daftar Barang', '/daftar_barang'),
             ],
           ),
         ],
@@ -248,13 +224,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMenuTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildMenuTile(IconData icon, String label, String route) {
     return InkWell(
-      onTap: onTap,
+      onTap: () => Navigator.pushNamed(context, route),
       child: Card(
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
