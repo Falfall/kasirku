@@ -1,5 +1,11 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../utils/constants.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'splash_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -16,8 +22,20 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZWduY3VyZnJ5YWt3em5xamNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1NTAwODQsImV4cCI6MjA2ODEyNjA4NH0.C9fl_LPRjJkYwB3zrVZQx6l00TqQwrH7FnQDGaRjdcw',
   );
 
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('id', null); // inisialisasi data lokal
+  // Inisialisasi GetStorage
+  await GetStorage.init();
+
+  // Inisialisasi Supabase
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
   runApp(const MyApp());
 }
+
+// Helper global untuk akses mudah ke client Supabase
+final supabase = Supabase.instance.client;
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
