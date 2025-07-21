@@ -12,6 +12,7 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> _barangList = [];
+  bool _isLoading = true;
 
   final TextEditingController kodeController = TextEditingController();
   final TextEditingController namaController = TextEditingController();
@@ -25,19 +26,33 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
   }
 
   Future<void> fetchBarang() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final response =
-          await supabase
-              .from('daftar_barang')
-              .select(); // Hapus order by jika kolom waktu tidak tersedia
+          await Supabase.instance.client.from('daftar_barang').select();
 
-      print("DATA DARI SUPABASE: $response");
+      print('Response: ${response}'); // Tambahkan ini
 
       setState(() {
         _barangList = List<Map<String, dynamic>>.from(response);
+        _isLoading = false;
       });
-    } catch (e) {
-      print("GAGAL AMBIL DATA: $e");
+
+      print("List barang: $_barangList");
+    } catch (e, stack) {
+      print("ERROR: $e");
+      print("STACK: $stack");
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal ambil data: $e")));
     }
   }
 
@@ -70,6 +85,9 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
       fetchBarang();
     } catch (e) {
       print("GAGAL TAMBAH DATA: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal tambah data: $e")));
     }
   }
 
@@ -127,20 +145,25 @@ class _DaftarBarangPageState extends State<DaftarBarangPage> {
     return Scaffold(
       appBar: AppBar(title: const Text("Daftar Barang")),
       body:
-          _barangList.isEmpty
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _barangList.isEmpty
               ? const Center(child: Text("Belum ada data barang."))
-              : ListView.builder(
-                itemCount: _barangList.length,
-                itemBuilder: (context, index) {
-                  final barang = _barangList[index];
-                  return ListTile(
-                    leading: CircleAvatar(child: Text("${index + 1}")),
-                    title: Text(barang['nama_barang'] ?? 'Tanpa Nama'),
-                    subtitle: Text(
-                      'Kode: ${barang['kode_brg'] ?? '-'} | Harga: ${barang['harga'] ?? 0} | Stok: ${barang['stok'] ?? 0}',
-                    ),
-                  );
-                },
+              : RefreshIndicator(
+                onRefresh: fetchBarang,
+                child: ListView.builder(
+                  itemCount: _barangList.length,
+                  itemBuilder: (context, index) {
+                    final barang = _barangList[index];
+                    return ListTile(
+                      leading: CircleAvatar(child: Text("${index + 1}")),
+                      title: Text(barang['nama_barang'] ?? 'Tanpa Nama'),
+                      subtitle: Text(
+                        'Kode: ${barang['kode_brg'] ?? '-'} | Harga: Rp${barang['harga'] ?? 0} | Stok: ${barang['stok'] ?? 0}',
+                      ),
+                    );
+                  },
+                ),
               ),
       floatingActionButton: FloatingActionButton(
         onPressed: showFormDialog,
