@@ -2,173 +2,137 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DaftarBarangPage extends StatefulWidget {
-  const DaftarBarangPage({Key? key}) : super(key: key);
+  const DaftarBarangPage({super.key});
 
   @override
   State<DaftarBarangPage> createState() => _DaftarBarangPageState();
 }
 
 class _DaftarBarangPageState extends State<DaftarBarangPage> {
-  final supabase = Supabase.instance.client;
+  final namaController = TextEditingController();
+  final supplierController = TextEditingController();
+  final hargaController = TextEditingController();
 
-  List<Map<String, dynamic>> _barangList = [];
-  bool _isLoading = true;
-
-  final TextEditingController kodeController = TextEditingController();
-  final TextEditingController namaController = TextEditingController();
-  final TextEditingController hargaController = TextEditingController();
-  final TextEditingController stokController = TextEditingController();
+  List<dynamic> daftarBarang = [];
 
   @override
   void initState() {
     super.initState();
-    fetchBarang();
+    getBarang();
   }
 
-  Future<void> fetchBarang() async {
+  Future<void> getBarang() async {
+    final response = await Supabase.instance.client
+        .from('produk')
+        .select()
+        .order('id_produk', ascending: true);
+
     setState(() {
-      _isLoading = true;
+      daftarBarang = response;
     });
-
-    try {
-      final response =
-          await Supabase.instance.client.from('daftar_barang').select();
-
-      print('Response: ${response}'); // Tambahkan ini
-
-      setState(() {
-        _barangList = List<Map<String, dynamic>>.from(response);
-        _isLoading = false;
-      });
-
-      print("List barang: $_barangList");
-    } catch (e, stack) {
-      print("ERROR: $e");
-      print("STACK: $stack");
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal ambil data: $e")));
-    }
   }
 
-  Future<void> tambahBarang() async {
-    final kode = kodeController.text.trim();
+  Future<void> simpanBarang() async {
     final nama = namaController.text.trim();
-    final harga = int.tryParse(hargaController.text.trim()) ?? 0;
-    final stok = int.tryParse(stokController.text.trim()) ?? 0;
+    final supplier = supplierController.text.trim();
+    final harga = hargaController.text.trim();
 
-    if (kode.isEmpty || nama.isEmpty) {
+    if (nama.isEmpty || supplier.isEmpty || harga.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kode dan nama barang wajib diisi")),
+        const SnackBar(content: Text('Semua field harus diisi')),
       );
       return;
     }
 
     try {
-      await supabase.from('daftar_barang').insert({
-        'kode_brg': kode,
-        'nama_barang': nama,
-        'harga': harga,
-        'stok': stok,
+      await Supabase.instance.client.from('produk').insert({
+        'nama_brg': nama,
+        'suplier': supplier, // pastikan kolom di Supabase 'suplier' (tanpa "p" kedua)
+        'harga': int.parse(harga),
       });
 
-      kodeController.clear();
-      namaController.clear();
-      hargaController.clear();
-      stokController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Barang berhasil disimpan')),
+      );
 
-      fetchBarang();
+      // Kosongkan field dan refresh data
+      namaController.clear();
+      supplierController.clear();
+      hargaController.clear();
+      getBarang();
     } catch (e) {
-      print("GAGAL TAMBAH DATA: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal tambah data: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan: $e')),
+      );
     }
   }
 
-  void showFormDialog() {
+  void showTambahDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text("Tambah Barang"),
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  TextField(
-                    controller: kodeController,
-                    decoration: const InputDecoration(labelText: 'Kode Barang'),
-                  ),
-                  TextField(
-                    controller: namaController,
-                    decoration: const InputDecoration(labelText: 'Nama Barang'),
-                  ),
-                  TextField(
-                    controller: hargaController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Harga'),
-                  ),
-                  TextField(
-                    controller: stokController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Stok'),
-                  ),
-                ],
-              ),
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Tambah Barang'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: namaController,
+              decoration: const InputDecoration(labelText: 'Nama Barang'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text("Batal"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  tambahBarang();
-                  Navigator.pop(context);
-                },
-                child: const Text("Simpan"),
-              ),
-            ],
+            TextField(
+              controller: supplierController,
+              decoration: const InputDecoration(labelText: 'Supplier'),
+            ),
+            TextField(
+              controller: hargaController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Harga'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              simpanBarang();
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Daftar Barang")),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _barangList.isEmpty
-              ? const Center(child: Text("Belum ada data barang."))
-              : RefreshIndicator(
-                onRefresh: fetchBarang,
-                child: ListView.builder(
-                  itemCount: _barangList.length,
-                  itemBuilder: (context, index) {
-                    final barang = _barangList[index];
-                    return ListTile(
-                      leading: CircleAvatar(child: Text("${index + 1}")),
-                      title: Text(barang['nama_barang'] ?? 'Tanpa Nama'),
-                      subtitle: Text(
-                        'Kode: ${barang['kode_brg'] ?? '-'} | Harga: Rp${barang['harga'] ?? 0} | Stok: ${barang['stok'] ?? 0}',
-                      ),
-                    );
-                  },
-                ),
-              ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: showFormDialog,
-        child: const Icon(Icons.add),
+      appBar: AppBar(
+        title: const Text('Daftar Barang'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: showTambahDialog,
+          ),
+        ],
       ),
+      body: daftarBarang.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: daftarBarang.length,
+              itemBuilder: (context, index) {
+                final barang = daftarBarang[index];
+                return ListTile(
+                  title: Text(barang['nama_brg'] ?? ''),
+                  subtitle: Text(
+                      'Suplier: ${barang['suplier']} | Harga: ${barang['harga']}'),
+                );
+              },
+            ),
     );
   }
 }

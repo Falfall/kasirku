@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'profiluser.dart';
 
@@ -12,76 +11,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
-  double _totalHariIni = 0;
-  List<BarChartGroupData> _chartData = [];
-  bool _isChartLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTotalHariIni();
-    _loadChartData();
-  }
-
-  Future<void> _loadTotalHariIni() async {
-    final now = DateTime.now();
-    final tanggal = now.toIso8601String().substring(0, 10);
-    try {
-      final response = await Supabase.instance.client
-          .from('transaksi_penjualan')
-          .select('total')
-          .eq('tanggal', tanggal);
-
-      double total = 0;
-      for (final item in response) {
-        total += (item['total'] as num?)?.toDouble() ?? 0;
-      }
-
-      setState(() {
-        _totalHariIni = total;
-      });
-    } catch (e) {
-      print("❌ Gagal ambil total hari ini: $e");
-    }
-  }
-
-  Future<void> _loadChartData() async {
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 6));
-    final formattedStart = sevenDaysAgo.toIso8601String().substring(0, 10);
-
-    try {
-      final response = await Supabase.instance.client
-          .from('transaksi_penjualan')
-          .select('tanggal, total')
-          .gte('tanggal', formattedStart)
-          .order('tanggal');
-
-      Map<String, double> totals = {};
-      for (final item in response) {
-        final tgl = item['tanggal'].substring(0, 10);
-        final nilai = (item['total'] as num?)?.toDouble() ?? 0;
-        totals[tgl] = (totals[tgl] ?? 0) + nilai;
-      }
-
-      setState(() {
-        _chartData = List.generate(7, (i) {
-          final date = sevenDaysAgo.add(Duration(days: i));
-          final key = date.toIso8601String().substring(0, 10);
-          final total = totals[key] ?? 0;
-
-          return BarChartGroupData(
-            x: i,
-            barRods: [BarChartRodData(toY: total, color: Colors.deepPurple)],
-          );
-        });
-        _isChartLoading = false;
-      });
-    } catch (e) {
-      print("❌ Gagal ambil data chart: $e");
-      setState(() => _isChartLoading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,55 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.all(16.0),
       child: ListView(
         children: [
-          _buildSummaryCard(),
-          const SizedBox(height: 20),
-          const Text(
-            'Grafik Penjualan (7 Hari Terakhir)',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          _isChartLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    barGroups: _chartData,
-                    borderData: FlBorderData(show: false),
-                    gridData: FlGridData(show: false),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            final date = DateTime.now().subtract(
-                              Duration(days: 6 - index),
-                            );
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              child: Text(
-                                '${date.day}/${date.month}',
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: true),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          const SizedBox(height: 30),
           const Text(
             'Menu Utama',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -188,42 +68,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               _buildMenuTile(Icons.input, 'Barang Masuk', '/barang-masuk'),
               _buildMenuTile(Icons.output, 'Laporan Barang', '/laporan-barang'),
-              _buildMenuTile(
-                Icons.receipt_long,
-                'Laporan',
-                '/laporan-transaksi',
-              ),
+              _buildMenuTile(Icons.receipt_long, 'Laporan', '/laporan-transaksi'),
               _buildMenuTile(Icons.shopping_cart, 'Transaksi', '/transaksi'),
               _buildMenuTile(Icons.list, 'Daftar Barang', '/daftar_barang'),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.deepPurple.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Total Pendapatan Hari Ini'),
-            const SizedBox(height: 10),
-            Text(
-              'Rp ${_totalHariIni.toStringAsFixed(0)}',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

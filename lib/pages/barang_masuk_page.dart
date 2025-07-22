@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/00app_drawer.dart';
 
 class BarangMasukPage extends StatefulWidget {
   const BarangMasukPage({super.key});
@@ -11,9 +11,12 @@ class BarangMasukPage extends StatefulWidget {
 
 class _BarangMasukPageState extends State<BarangMasukPage> {
   final supabase = Supabase.instance.client;
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   List<Map<String, dynamic>> _produkList = [];
   Map<String, dynamic>? _selectedProduk;
+  List<Map<String, dynamic>> _barangMasukList = [];
 
   final _jumlahController = TextEditingController();
   final _hargaController = TextEditingController();
@@ -26,6 +29,7 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
   void initState() {
     super.initState();
     _fetchProduk();
+    _fetchBarangMasuk();
     _jumlahController.addListener(_updateTotal);
   }
 
@@ -33,6 +37,16 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
     final res = await supabase.from('produk').select();
     setState(() {
       _produkList = List<Map<String, dynamic>>.from(res);
+    });
+  }
+
+  Future<void> _fetchBarangMasuk() async {
+    final res = await supabase
+        .from('barang_masuk')
+        .select('id, jumlah, tanggal_masuk, produk (nama_brg, harga)')
+        .order('tanggal_masuk', ascending: false);
+    setState(() {
+      _barangMasukList = List<Map<String, dynamic>>.from(res);
     });
   }
 
@@ -76,15 +90,13 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
     setState(() => _isLoading = true);
 
     try {
-      print("✅ ID produk yang akan disimpan: ${_selectedProduk!['id']}");
-
       await supabase.from('barang_masuk').insert({
-        'id_produk': _selectedProduk!['id_produk'], // disesuaikan
+        'id_produk': _selectedProduk!['id_produk'],
         'jumlah': jumlah,
         'tanggal_masuk': _tanggalMasuk!.toIso8601String().split('T')[0],
       });
 
-      _showTopSnackbar('Data berhasil disimpan');
+      _showTopSnackbar('✅ Data berhasil disimpan');
 
       _jumlahController.clear();
       _hargaController.clear();
@@ -94,8 +106,10 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
         _selectedProduk = null;
         _tanggalMasuk = null;
       });
+
+      await _fetchBarangMasuk();
     } catch (e) {
-      _showTopSnackbar('Gagal simpan: $e', isError: true);
+      _showTopSnackbar('❌ Gagal simpan: $e', isError: true);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -107,9 +121,7 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
         children: [
           Icon(isError ? Icons.error : Icons.check_circle, color: Colors.white),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(message, style: const TextStyle(color: Colors.white)),
-          ),
+          Expanded(child: Text(message, style: const TextStyle(color: Colors.white))),
         ],
       ),
       backgroundColor: isError ? Colors.red : Colors.green,
@@ -135,13 +147,11 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tglText =
-        _tanggalMasuk == null
-            ? ''
-            : "${_tanggalMasuk!.day}/${_tanggalMasuk!.month}/${_tanggalMasuk!.year}";
+    final tglText = _tanggalMasuk == null
+        ? ''
+        : "${_tanggalMasuk!.day}/${_tanggalMasuk!.month}/${_tanggalMasuk!.year}";
 
     return Scaffold(
-      // drawer: const AppDrawer(),
       appBar: AppBar(title: const Text("Barang Masuk"), centerTitle: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -152,34 +162,23 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
                 labelText: 'Cari Barang',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
               value: _selectedProduk,
-              items:
-                  _produkList.map((produk) {
-                    return DropdownMenuItem(
-                      value: produk,
-                      child: Text(produk['nama_brg']),
-                    );
-                  }).toList(),
+              items: _produkList.map((produk) {
+                return DropdownMenuItem(
+                  value: produk,
+                  child: Text(produk['nama_brg']),
+                );
+              }).toList(),
               onChanged: (val) {
                 if (val != null) _onProdukSelected(val);
               },
             ),
             const SizedBox(height: 16),
-            _inputField(
-              'Jumlah Masuk',
-              _jumlahController,
-              keyboardType: TextInputType.number,
-            ),
-            _inputField(
-              'Harga Satuan (Rp)',
-              _hargaController,
-              keyboardType: TextInputType.number,
-              enabled: false,
-            ),
+            _inputField('Jumlah Masuk', _jumlahController, keyboardType: TextInputType.number),
+            _inputField('Harga Satuan (Rp)', _hargaController,
+                keyboardType: TextInputType.number, enabled: false),
             _inputField('Suplier', _supplierController, enabled: false),
             GestureDetector(
               onTap: _pilihTanggal,
@@ -191,35 +190,25 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
                     suffixIcon: const Icon(Icons.calendar_today),
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            _inputField(
-              'Total Nilai Barang Masuk (Rp)',
-              _totalController,
-              enabled: false,
-            ),
+            _inputField('Total Nilai Barang Masuk (Rp)', _totalController, enabled: false),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: _isLoading ? null : _simpanData,
-                icon:
-                    _isLoading
-                        ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                        : const Icon(Icons.save, color: Colors.white),
+                icon: _isLoading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save, color: Colors.white),
                 label: Text(
                   _isLoading ? 'Menyimpan...' : 'Simpan',
                   style: const TextStyle(fontSize: 16, color: Colors.white),
@@ -230,6 +219,49 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
                 ),
               ),
             ),
+            const SizedBox(height: 30),
+            const Divider(height: 1, color: Colors.grey),
+            const SizedBox(height: 20),
+            const Text('📦 Riwayat Barang Masuk',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            _barangMasukList.isEmpty
+                ? const Text('Belum ada data.')
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _barangMasukList.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = _barangMasukList[index];
+                      final nama = item['produk']['nama_brg'] ?? '-';
+                      final jumlah = item['jumlah'] ?? 0;
+                      final harga = item['produk']['harga'] ?? 0;
+                      final total = jumlah * harga;
+                      final tanggal = item['tanggal_masuk'] ?? '';
+
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(nama,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text("Jumlah: $jumlah"),
+                            Text("Harga: ${currencyFormatter.format(harga)}"),
+                            Text("Total: ${currencyFormatter.format(total)}"),
+                            Text("Tanggal: $tanggal"),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ],
         ),
       ),
@@ -252,10 +284,7 @@ class _BarangMasukPageState extends State<BarangMasukPage> {
           labelText: label,
           filled: true,
           fillColor: enabled ? Colors.white : Colors.grey.shade100,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),

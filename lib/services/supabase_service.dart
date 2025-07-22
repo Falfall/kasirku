@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import '../models/produk.dart';
 import '../models/transaksi.dart';
-import 'package:intl/intl.dart';
 
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
@@ -16,26 +16,21 @@ class SupabaseService {
   }
 
   Future<AuthResponse> signIn(String email, String password) async {
-    return await client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    return await client.auth.signInWithPassword(email: email, password: password);
   }
 
   Future<void> signOut() async => await client.auth.signOut();
-
   User? get currentUser => client.auth.currentUser;
 
-  // Produk CRUD
+  // Produk
   Future<List<Produk>> fetchProduk() async {
     final response = await client
         .from('produk')
         .select('*')
         .order('nama_brg', ascending: true);
+
     return response is List
-        ? response
-            .map((item) => Produk.fromJson(item as Map<String, dynamic>))
-            .toList()
+        ? response.map((item) => Produk.fromJson(item as Map<String, dynamic>)).toList()
         : [];
   }
 
@@ -78,8 +73,7 @@ class SupabaseService {
     await client.from('barang_masuk').insert({
       'id_produk': idProduk,
       'jumlah': jumlah,
-      'tanggal_masuk':
-          (tanggalMasuk ?? DateTime.now()).toIso8601String().split('T')[0],
+      'tanggal_masuk': (tanggalMasuk ?? DateTime.now()).toIso8601String().split('T')[0],
     });
   }
 
@@ -88,33 +82,62 @@ class SupabaseService {
     Transaksi transaksi,
     List<TransaksiDetail> detailList,
   ) async {
-    final trxRes =
-        await client
-            .from('transaksi')
-            .insert({
-              'total': transaksi.total,
-              'tanggal': DateTime.now().toIso8601String().split('T')[0],
-            })
-            .select()
-            .single();
+    final trxRes = await client
+        .from('transaksi')
+        .insert({
+          'total': transaksi.total,
+          'tanggal': DateTime.now().toIso8601String().split('T')[0],
+        })
+        .select()
+        .single();
 
     final idTransaksi = trxRes['id'];
 
-    final detailData =
-        detailList
-            .map(
-              (d) => {
-                'id_transaksi': idTransaksi,
-                'id_produk': d.idProduk,
-                'jumlah': d.jumlah,
-                'harga': d.harga,
-              },
-            )
-            .toList();
+    final detailData = detailList.map((d) {
+      return {
+        'id_transaksi': idTransaksi,
+        'id_produk': d.idProduk,
+        'jumlah': d.jumlah,
+        'harga': d.harga,
+      };
+    }).toList();
 
     await client.from('transaksi_detail').insert(detailData);
   }
 
+  Future<int> simpanTransaksiDanKembalikanId(
+    Transaksi transaksi,
+    List<TransaksiDetail> detailList,
+  ) async {
+    try {
+      final trxRes = await client
+          .from('transaksi')
+          .insert({
+            'total': transaksi.total,
+            'tanggal': DateTime.now().toIso8601String().split('T')[0],
+          })
+          .select()
+          .single();
+
+      final int idTransaksi = trxRes['id'];
+
+      final detailData = detailList.map((d) {
+        return {
+          'id_transaksi': idTransaksi,
+          'id_produk': d.idProduk,
+          'jumlah': d.jumlah,
+          'harga': d.harga,
+        };
+      }).toList();
+
+      await client.from('transaksi_detail').insert(detailData);
+      return idTransaksi;
+    } catch (e) {
+      throw Exception('Gagal menyimpan transaksi dan detail: $e');
+    }
+  }
+
+  // Laporan Harian
   Future<Map<String, dynamic>> getLaporanHarian(DateTime date) async {
     final startDate = DateTime(date.year, date.month, date.day);
     final endDate = startDate.add(Duration(days: 1));
@@ -128,10 +151,7 @@ class SupabaseService {
     final transaksiList = List<Map<String, dynamic>>.from(transaksi);
     final ids = transaksiList.map((e) => e['id']).toList();
 
-    double pendapatan = transaksiList.fold(
-      0,
-      (sum, t) => sum + (t['total'] as num).toDouble(),
-    );
+    double pendapatan = transaksiList.fold(0, (sum, t) => sum + (t['total'] as num).toDouble());
     int produkTerjual = 0;
 
     if (ids.isNotEmpty) {
@@ -140,9 +160,8 @@ class SupabaseService {
           .select('jumlah')
           .inFilter('id_transaksi', ids);
 
-      produkTerjual = List<Map<String, dynamic>>.from(
-        detail,
-      ).fold(0, (sum, item) => sum + (item['jumlah'] as int));
+      produkTerjual = List<Map<String, dynamic>>.from(detail)
+          .fold(0, (sum, item) => sum + (item['jumlah'] as int));
     }
 
     return {
@@ -152,6 +171,7 @@ class SupabaseService {
     };
   }
 
+  // Laporan Mingguan
   Future<List<Map<String, dynamic>>> getLaporanMingguan() async {
     final today = DateTime.now();
     final start = today.subtract(Duration(days: 6));
@@ -168,8 +188,7 @@ class SupabaseService {
     for (var item in data) {
       final date = DateTime.parse(item['tanggal']).toLocal();
       final key = DateFormat('yyyy-MM-dd').format(date);
-      totalPerHari[key] =
-          (totalPerHari[key] ?? 0) + (item['total'] as num).toDouble();
+      totalPerHari[key] = (totalPerHari[key] ?? 0) + (item['total'] as num).toDouble();
     }
 
     return List.generate(7, (i) {
@@ -186,24 +205,17 @@ class SupabaseService {
         .order('id', ascending: false)
         .limit(limit);
 
-    return List<Map<String, dynamic>>.from(data)
-        .map(
-          (trx) => {
-            'id': trx['id'],
-            'total': trx['total'],
-            'tanggal': trx['tanggal'],
-            'formatted': DateFormat(
-              'dd MMMM yyyy',
-              'id_ID',
-            ).format(DateTime.parse(trx['tanggal'])),
-          },
-        )
-        .toList();
+    return List<Map<String, dynamic>>.from(data).map((trx) {
+      return {
+        'id': trx['id'],
+        'total': trx['total'],
+        'tanggal': trx['tanggal'],
+        'formatted': DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.parse(trx['tanggal'])),
+      };
+    }).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getAllTransaksiHariIni(
-    DateTime date,
-  ) async {
+  Future<List<Map<String, dynamic>>> getAllTransaksiHariIni(DateTime date) async {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(Duration(days: 1));
 
@@ -217,6 +229,7 @@ class SupabaseService {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  // Laporan Gabungan
   Future<List<Map<String, dynamic>>> getLaporanGabungan({
     required DateTime start,
     required DateTime end,
@@ -228,6 +241,7 @@ class SupabaseService {
 
     final resultGabungan = <Map<String, dynamic>>[];
 
+    // Barang Masuk
     if (jenisFilter == 'Semua' || jenisFilter == 'Masuk') {
       final masukRes = await client
           .from('barang_masuk')
@@ -239,24 +253,21 @@ class SupabaseService {
       final masukList = List<Map<String, dynamic>>.from(masukRes);
 
       resultGabungan.addAll(
-        masukList
-            .where((item) {
-              final nama =
-                  item['produk']?['nama_brg']?.toString().toLowerCase() ?? '';
-              return keyword.isEmpty || nama.contains(keyword.toLowerCase());
-            })
-            .map(
-              (item) => {
-                'tanggal':
-                    DateTime.tryParse(item['tanggal_masuk']) ?? DateTime.now(),
-                'nama_brg': item['produk']?['nama_brg'] ?? 'Tidak diketahui',
-                'jumlah': item['jumlah'] ?? 0,
-                'jenis': 'Masuk',
-              },
-            ),
+        masukList.where((item) {
+          final nama = item['produk']?['nama_brg']?.toString().toLowerCase() ?? '';
+          return keyword.isEmpty || nama.contains(keyword.toLowerCase());
+        }).map((item) {
+          return {
+            'tanggal': DateTime.tryParse(item['tanggal_masuk']) ?? DateTime.now(),
+            'nama_brg': item['produk']?['nama_brg'] ?? 'Tidak diketahui',
+            'jumlah': item['jumlah'] ?? 0,
+            'jenis': 'Masuk',
+          };
+        }),
       );
     }
 
+    // Barang Keluar
     if (jenisFilter == 'Semua' || jenisFilter == 'Keluar') {
       final transaksiRes = await client
           .from('transaksi')
@@ -279,24 +290,17 @@ class SupabaseService {
         final keluarList = List<Map<String, dynamic>>.from(keluarRes);
 
         resultGabungan.addAll(
-          keluarList
-              .where((item) {
-                final nama =
-                    item['produk']?['nama_brg']?.toString().toLowerCase() ?? '';
-                return keyword.isEmpty || nama.contains(keyword.toLowerCase());
-              })
-              .map(
-                (item) => {
-                  'tanggal':
-                      DateTime.tryParse(
-                        transaksiTanggal[item['id_transaksi']],
-                      ) ??
-                      DateTime.now(),
-                  'nama_brg': item['produk']?['nama_brg'] ?? 'Tidak diketahui',
-                  'jumlah': item['jumlah'] ?? 0,
-                  'jenis': 'Keluar',
-                },
-              ),
+          keluarList.where((item) {
+            final nama = item['produk']?['nama_brg']?.toString().toLowerCase() ?? '';
+            return keyword.isEmpty || nama.contains(keyword.toLowerCase());
+          }).map((item) {
+            return {
+              'tanggal': DateTime.tryParse(transaksiTanggal[item['id_transaksi']]) ?? DateTime.now(),
+              'nama_brg': item['produk']?['nama_brg'] ?? 'Tidak diketahui',
+              'jumlah': item['jumlah'] ?? 0,
+              'jenis': 'Keluar',
+            };
+          }),
         );
       }
     }
