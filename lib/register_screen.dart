@@ -1,193 +1,231 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController(); // Tambahan
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Password tidak cocok')));
-        return;
+  Future<void> _register() async {
+    final email = _emailController.text.trim();
+    final username = _usernameController.text.trim(); // Ambil username
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    setState(() {
+      _errorMessage = null;
+    });
+
+    if (!_formKey.currentState!.validate()) return;
+
+    if (password != confirmPassword) {
+      setState(() {
+        _errorMessage = 'Password tidak cocok';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await Supabase.instance.client.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final user = response.user;
+
+      if (user != null) {
+        print("✅ Registrasi berhasil. id: ${user.id}");
+
+        // Insert ke tabel admin
+        final insertResponse = await Supabase.instance.client
+            .from('admin')
+            .insert({
+              'email': email,
+              'username': username, // Masukkan username
+              'id': user.id,
+            });
+
+        print("✅ Data admin ditambahkan: $insertResponse");
+
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        setState(() {
+          _errorMessage = 'Gagal mendapatkan user dari Supabase';
+        });
       }
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String email = _emailController.text;
-      String password = _passwordController.text;
-
-      // Simpan akun ke shared preferences
-      await prefs.setString('user_$email', password);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Registrasi berhasil')));
-
-      Navigator.pushReplacementNamed(context, '/login');
+    } on PostgrestException catch (e) {
+      print("❌ Postgrest error: ${e.message}");
+      setState(() {
+        _errorMessage = 'Database error: ${e.message}';
+      });
+    } on AuthException catch (e) {
+      print("❌ Auth error: ${e.message}");
+      setState(() {
+        _errorMessage = 'Gagal: ${e.message}';
+      });
+    } catch (e) {
+      print("❌ Error lain: $e");
+      setState(() {
+        _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
-
-  void _togglePasswordVisibility() {
-    setState(() {
-      _obscurePassword = !_obscurePassword;
-    });
-  }
-
-  void _toggleConfirmPasswordVisibility() {
-    setState(() {
-      _obscureConfirmPassword = !_obscureConfirmPassword;
-    });
-  }
-
-  Widget _buildInputField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    bool isPassword = false,
-    TextInputType inputType = TextInputType.text,
-  }) {
-    bool isConfirmPassword = controller == _confirmPasswordController;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          SizedBox(height: 5),
-          TextFormField(
-            controller: controller,
-            obscureText:
-                isPassword
-                    ? (isConfirmPassword
-                        ? _obscureConfirmPassword
-                        : _obscurePassword)
-                    : false,
-            keyboardType: inputType,
-            validator:
-                (value) =>
-                    value == null || value.isEmpty ? 'Wajib diisi' : null,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon),
-              suffixIcon:
-                  isPassword
-                      ? IconButton(
-                        icon: Icon(
-                          (isConfirmPassword
-                                  ? _obscureConfirmPassword
-                                  : _obscurePassword)
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed:
-                            isConfirmPassword
-                                ? _toggleConfirmPasswordVisibility
-                                : _togglePasswordVisibility,
-                      )
-                      : null,
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(
-                vertical: 12,
-                horizontal: 10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _usernameController.dispose(); // Dispose juga
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.pink[50],
+      appBar: AppBar(
+        title: const Text('REGISTER BARU'),
+        backgroundColor: Colors.pink[100],
+      ),
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
           child: Container(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             width: 400,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  blurRadius: 10,
+                  color: Colors.black12,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
-                  Text(
-                    'REGISTER BARU',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: Colors.black,
+                  const SizedBox(height: 16),
+
+                  // Username input
+                  TextFormField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      prefixIcon: Icon(Icons.person),
                     ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Username wajib diisi';
+                      }
+                      return null;
+                    },
                   ),
-                  SizedBox(height: 30),
-                  _buildInputField(
-                    label: 'Email atau username',
+
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _emailController,
-                    icon: Icons.person,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Email wajib diisi';
+                      }
+                      if (!value.contains('@') || !value.contains('.')) {
+                        return 'Format email tidak valid';
+                      }
+                      return null;
+                    },
                   ),
-                  _buildInputField(
-                    label: 'Password',
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _passwordController,
-                    icon: Icons.vpn_key,
-                    isPassword: true,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: Icon(Icons.lock),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().length < 6) {
+                        return 'Password minimal 6 karakter';
+                      }
+                      return null;
+                    },
                   ),
-                  _buildInputField(
-                    label: 'Konfirmasi Password',
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _confirmPasswordController,
-                    icon: Icons.vpn_key,
-                    isPassword: true,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Konfirmasi Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Konfirmasi password wajib diisi';
+                      }
+                      return null;
+                    },
                   ),
-                  _buildInputField(
-                    label: 'Nomor Handphone',
-                    controller: _phoneController,
-                    icon: Icons.phone,
-                    inputType: TextInputType.phone,
-                  ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 24),
+                  if (_errorMessage != null)
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
-                    height: 45,
                     child: ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.pink,
                       ),
-                      child: Text(
-                        'DAFTAR',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'DAFTAR',
+                                style: TextStyle(color: Colors.white),
+                              ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                    child: const Text('Sudah punya akun? Login'),
                   ),
                 ],
               ),
