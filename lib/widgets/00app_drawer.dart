@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../utils/app_routes.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -23,7 +22,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Menu Transaksi'),
             onTap: () {
               Navigator.pop(context);
-              Get.toNamed(AppRoutes.transaksiPage);
+              Get.toNamed('/transaksiPage');
             },
           ),
           ListTile(
@@ -31,7 +30,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Barang Masuk'),
             onTap: () {
               Navigator.pop(context);
-              Get.toNamed(AppRoutes.barangMasuk);
+              Get.toNamed('/barangMasuk');
             },
           ),
           ListTile(
@@ -39,7 +38,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Laporan Transaksi'),
             onTap: () {
               Navigator.pop(context); // tutup drawer
-              Get.toNamed(AppRoutes.laporanTransaksi);
+              Get.toNamed('/laporanTransaksi');
             },
           ),
           ListTile(
@@ -47,7 +46,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Laporan Barang'),
             onTap: () {
               Navigator.pop(context);
-              Get.toNamed(AppRoutes.laporanBarang);
+              Get.toNamed('/laporanBarang');
             },
           ),
         ],

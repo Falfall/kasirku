@@ -1,191 +1,156 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/supabase_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _obscure = true;
+  bool _isLoading = false;
 
-  bool _obscurePassword = true;
+  void _togglePassword() => setState(() => _obscure = !_obscure);
 
-  void _togglePasswordVisibility() {
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() {
-      _obscurePassword = !_obscurePassword;
+      _isLoading = true;
     });
-  }
 
-  void _submitLogin() async {
-    String email = _emailController.text;
-    String password = _passwordController.text;
+    try {
+      final response = await SupabaseService().signIn(
+        _email.text.trim(),
+        _password.text,
+      );
 
-    if (_formKey.currentState!.validate()) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? savedPassword = prefs.getString('user_$email');
-
-      if (savedPassword != null) {
-        if (savedPassword == password) {
-          await prefs.setString('logged_in_user', email);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Login berhasil')));
-          Navigator.pushReplacementNamed(context, '/dashboard');
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Password salah')));
-        }
+      if (response.user != null) {
+        _showMessage("Login berhasil!");
+        Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Akun tidak ditemukan')));
+        _showMessage("Login gagal. Cek email & password.");
       }
+    } on AuthException catch (e) {
+      _showMessage("Auth error: ${e.message}");
+    } catch (e) {
+      _showMessage("Error: $e");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  Widget _buildTextField({
-    required String hint,
-    required IconData icon,
-    required TextEditingController controller,
-    String? autofillHint,
-    bool isPassword = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: TextFormField(
-        controller: controller,
-        obscureText: isPassword ? _obscurePassword : false,
-        autofillHints: autofillHint != null ? [autofillHint] : null,
-        validator:
-            (value) => value == null || value.isEmpty ? 'Wajib diisi' : null,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Colors.black54),
-          suffixIcon:
-              isPassword
-                  ? IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: _togglePasswordVisibility,
-                  )
-                  : null,
-          contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.black54, width: 1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.black54, width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.pink, width: 1.5),
-          ),
-        ),
-      ),
-    );
+  void _showMessage(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade100,
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 32),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Login Kasir',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            width: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  const Text(
+                    'LOGIN',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Masukkan Email dan Password',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                ),
-                AutofillGroup(
-                  child: Column(
-                    children: [
-                      _buildTextField(
-                        hint: 'Email',
-                        icon: Icons.email,
-                        controller: _emailController,
-                        autofillHint: AutofillHints.username,
-                      ),
-                      _buildTextField(
-                        hint: 'Password',
-                        icon: Icons.lock,
-                        controller: _passwordController,
-                        isPassword: true,
-                        autofillHint: AutofillHints.password,
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: ElevatedButton(
-                    onPressed: _submitLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      'Login',
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                  const SizedBox(height: 30),
+                  TextFormField(
+                    controller: _email,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Wajib diisi';
+                      if (!value.contains('@') || !value.contains('.'))
+                        return 'Email tidak valid';
+                      return null;
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
+                      border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                   ),
-                ),
-                SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Belum punya akun? "),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacementNamed(context, '/register');
-                      },
-                      child: Text(
-                        "Daftar di sini",
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 15),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: _obscure,
+                    validator:
+                        (value) =>
+                            value == null || value.isEmpty
+                                ? 'Wajib diisi'
+                                : null,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscure ? Icons.visibility_off : Icons.visibility,
+                        ),
+                        onPressed: _togglePassword,
+                      ),
+                      border: const OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 45,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'LOGIN',
+                                style: TextStyle(color: Colors.white),
+                              ),
                     ),
-                  ],
-                ),
-                SizedBox(height: 15),
-                TextButton(
-                  onPressed: () {
-                    // nanti bisa arahkan ke halaman reset password
-                  },
-                  child: Text(
-                    'Lupa password ?',
-                    style: TextStyle(color: Colors.black),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed:
+                        () => Navigator.pushReplacementNamed(
+                          context,
+                          '/register',
+                        ),
+                    child: const Text('Belum punya akun? Daftar di sini'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
