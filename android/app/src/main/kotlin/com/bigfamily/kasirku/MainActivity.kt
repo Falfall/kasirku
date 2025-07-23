@@ -1,4 +1,4 @@
-package com.kasiku.app
+package com.bigfamily.kasirku
 
 import io.flutter.embedding.android.FlutterActivity
 
